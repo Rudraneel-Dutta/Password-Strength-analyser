@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Rudraneel | CHECK YOUR PASSWORD STRENGTH</title>
+    <meta name="description"
+        content="Improved password strength checker with animations, more accurate scoring, time-to-crack ranges, passphrase generator, ARIA/accessibility, and polished UI." />
+    <style>
+        :root {
+            --bg-1: #0f1720;
+            --bg-2: #111827;
+            --card: #0b1220;
+            --muted: #9aa4b2;
+            --glass: rgba(255, 255, 255, 0.03);
+            --accent-1: #ffb86b;
+            --accent-2: #ffd166;
+            --danger: #ff6b6b;
+            --ok: #48e5a1;
+            --radius: 14px;
+            --glass-border: rgba(255, 255, 255, 0.04);
+            --glass-highlight: rgba(255, 255, 255, 0.02);
+            --transition: 300ms cubic-bezier(.2, .9, .2, 1);
+            --shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Segoe UI Mono", monospace;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: radial-gradient(1200px 600px at 10% 10%, rgba(255, 200, 120, 0.03), transparent), linear-gradient(180deg, var(--bg-1), var(--bg-2));
+            color: #e6eef6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 48px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        /* layout */
+        .wrap {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            align-items: start
+        }
+
+        /* left nav / control panel */
+        .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+            border-radius: var(--radius);
+            padding: 18px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 36px;
+            height: fit-content;
+        }
+
+        .brand {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 8px
+        }
+
+        .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #07101a
+        }
+
+        h2 {
+            font-size: 1.05rem;
+            margin: 0
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.9rem
+        }
+
+        .settings {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px
+        }
+
+        .control {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        label.switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none
+        }
+
+        .toggle {
+            width: 46px;
+            height: 26px;
+            background: var(--glass);
+            border-radius: 999px;
+            position: relative;
+            border: 1px solid var(--glass-border)
+        }
+
+        .toggle::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            position: absolute;
+            left: 4px;
+            top: 3px;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(2, 6, 23, 0.5)
+        }
+
+        input[type=checkbox] {
+            display: none
+        }
+
+        input[type=checkbox]:checked+.toggle {
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2))
+        }
+
+        input[type=checkbox]:checked+.toggle::after {
+            left: 24px
+        }
+
+        .settings small {
+            display: block;
+            color: var(--muted);
+            margin-left: 34px;
+            margin-top: -6px
+        }
+
+        .panel .generate-options {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px
+        }
+
+        .btn {
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            color: #07101a;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 8px 20px rgba(12, 18, 32, 0.6)
+        }
+
+        .btn:active {
+            transform: translateY(1px)
+        }
+
+        /* main card */
+        .main {
+            border-radius: var(--radius);
+            padding: 22px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.01));
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+        }
+
+        .headerRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px
+        }
+
+        .title {
+            font-size: 1.4rem;
+            font-weight: 700
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.95rem
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 18px;
+            margin-top: 18px
+        }
+
+        /* input area */
+        .inputCard {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent);
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border)
+        }
+
+        .label {
+            font-weight: 700;
+            color: var(--muted);
+            display: block;
+            margin-bottom: 8px
+        }
+
+        .inputRow {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .passwordField {
+            flex: 1;
+            position: relative
+        }
+
+        input#password {
+            width: 100%;
+            padding: 14px 48px 14px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.02);
+            color: inherit;
+            font-size: 1rem;
+            transition: var(--transition)
+        }
+
+        input#password:focus {
+            outline: none;
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.7);
+            transform: translateY(-2px)
+        }
+
+        .eyeBtn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--muted)
+        }
+
+        .small {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin-top: 10px
+        }
+
+        /* animated strength area */
+        .meter {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .rings {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px
+        }
+
+        .ring-wrap {
+            width: 160px;
+            height: 160px;
+            position: relative
+        }
+
+        svg.progress {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.7))
+        }
+
+        circle.bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.03);
+            stroke-width: 10
+        }
+
+        circle.fg {
+            fill: none;
+            stroke: var(--accent-1);
+            stroke-width: 10;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 700ms cubic-bezier(.2, .9, .2, 1), stroke 400ms linear
+        }
+
+        .scoreText {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column
+        }
+
+        .score {
+            font-size: 1.8rem;
+            font-weight: 800
+        }
+
+        .scoreLabel {
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.85rem
+        }
+
+        .bars {
+            display: flex;
+            gap: 8px;
+            height: 14px
+        }
+
+        .bar {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            overflow: hidden
+        }
+
+        .bar>span {
+            display: block;
+            height: 100%;
+            width: 0%;
+            transform-origin: left;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+            transition: width 600ms cubic-bezier(.2, .9, .2, 1)
+        }
+
+        .strengthLabel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px
+        }
+
+        /* requirements */
+        .requirements {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px
+        }
+
+        .req {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.02)
+        }
+
+        .req .dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: inline-grid;
+            place-items: center;
+            font-weight: 800
+        }
+
+        .req.ok .dot {
+            background: linear-gradient(90deg, var(--ok), #8ef0c2);
+            color: #043226
+        }
+
+        .req.fail .dot {
+            background: linear-gradient(90deg, #ff9a9a, #ff6b6b);
+            color: #2a0710
+        }
+
+        /* suggestions */
+        .suggestions {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent)
+        }
+
+        .suggestions ul {
+            margin: 0;
+            padding-left: 18px
+        }
+
+        /* crackers/time */
+        .timeBox {
+            padding: 12px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), transparent);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            text-align: center
+        }
+
+        .timeBox h4 {
+            margin: 0 0 6px 0;
+            color: var(--muted)
+        }
+
+        .timeRange {
+            font-weight: 800;
+            font-size: 1.05rem
+        }
+
+        /* small responsive */
+        @media (max-width:960px) {
+            .wrap {
+                grid-template-columns: 1fr
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr
+            }
+
+            .panel {
+                position: relative;
+                top: 0
+            }
+        }
+
+        /* micro animations */
+        @keyframes floaty {
+            0% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-6px)
+            }
+
+            100% {
+                transform: translateY(0)
+            }
+        }
+
+        .logo {
+            animation: floaty 5s ease-in-out infinite
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <aside class="panel" aria-labelledby="controlsTitle">
+            <div class="brand">
+                <div class="logo" aria-hidden>SP</div>
+                <div>
+                    <h2 id="controlsTitle">SecurePass — Controls</h2>
+                    <div class="muted">Rudras PaSSwOrd analyzer • live feedback</div>
+                </div>
+            </div>
+
+            <div class="settings" role="region" aria-label="Analyzer settings">
+                <label class="switch" title="Enable show entropy details">
+                    <input type="checkbox" id="showEntropy" checked />
+                    <div class="toggle" aria-hidden></div>
+                    <div>Show entropy & time-to-crack estimate</div>
+                </label>
+
+                <label class="switch" title="Include symbol characters in generator">
+                    <input type="checkbox" id="includeSymbols" checked />
+                    <div class="toggle" aria-hidden></div>
+                    <div>Include symbols when generating</div>
+                </label>
+
+                <label class="switch" title="Prefer passphrase style generation">
+                    <input type="checkbox" id="usePassphrase" />
+                    <div class="toggle" aria-hidden></div>
+                    <div>Generate pronounceable passphrases</div>
+                </label>
+
+                <small>Generator length</small>
+                <div style="display:flex;gap:8px;margin-top:6px">
+                    <input id="genLength" type="range" min="8" max="32" value="16" style="flex:1"
+                        aria-label="Password length slider">
+                    <div id="lenLabel" style="min-width:44px;text-align:right">16</div>
+                </div>
+
+                <div class="generate-options">
+                    <button class="btn" id="generateBtn">Generate</button>
+                    <button class="btn" id="copyBtn">Copy</button>
+                </div>
+
+            </div>
+        </aside>
+
+        <main class="main" role="main">
+            <div class="headerRow">
+                <div>
+                    <div class="title">Rudras PasssWORD Strength checker </div>
+                    <div class="subtitle">Real-time strength analysis with better entropy, animated UI, and actionable
+                        suggestions.</div>
+                </div>
+                <div class="muted">No passwords are sent to servers • all analysis is local</div>
+            </div>
+
+            <div class="card-grid">
+                <section class="inputCard" aria-labelledby="enterLabel">
+                    <label id="enterLabel" class="label">Enter password</label>
+                    <div class="inputRow">
+                        <div class="passwordField">
+                            <input id="password" type="password" inputmode="text" autocomplete="off"
+                                aria-describedby="pwHelp" aria-label="Password input"
+                                placeholder="Type or paste a password to analyze">
+                            <button class="eyeBtn" id="toggleEye" aria-pressed="false"
+                                title="Toggle visibility">👁️</button>
+                        </div>
+                        <div style="width:120px;display:flex;flex-direction:column;gap:8px">
+                            <div class="timeBox" style="padding:8px">
+                                <div style="font-size:0.8rem;color:var(--muted)">Quick score</div>
+                                <div id="quickScore" style="font-weight:800;font-size:1.05rem">0%</div>
+                            </div>
+                            <div class="timeBox" style="padding:8px">
+                                <div style="font-size:0.8rem;color:var(--muted)">Est. crack</div>
+                                <div id="quickTime" style="font-weight:800;font-size:0.9rem">Instant</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="pwHelp" class="small">Tip: use a passphrase (4+ random words) for memorability + strength.
+                    </div>
+
+                    <div class="meter" aria-hidden="false">
+                        <div class="rings">
+                            <div class="ring-wrap" aria-hidden>
+                                <svg class="progress" viewBox="0 0 200 200">
+                                    <circle class="bg" cx="100" cy="100" r="80"></circle>
+                                    <circle class="fg" id="progressRing" cx="100" cy="100" r="80" stroke-dasharray="502"
+                                        stroke-dashoffset="502"></circle>
+                                </svg>
+                                <div class="scoreText">
+                                    <div class="score" id="scorePercent">0%</div>
+                                    <div class="scoreLabel" id="scoreLabel">Very Weak</div>
+                                </div>
+                            </div>
+
+                            <div class="bars" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                                <div class="bar"><span id="b1"></span></div>
+                                <div class="bar"><span id="b2"></span></div>
+                                <div class="bar"><span id="b3"></span></div>
+                                <div class="bar"><span id="b4"></span></div>
+                                <div class="bar"><span id="b5"></span></div>
+                            </div>
+
+                            <div class="strengthLabel">
+                                <div class="muted">Strength detail</div>
+                                <div class="muted" id="entropyLabel">Entropy: — bits</div>
+                            </div>
+                        </div>
+
+                        <div class="requirements" id="requirements" aria-live="polite">
+                            <div class="req" id="r-length">
+                                <div class="dot">✗</div>
+                                <div>At least <strong>12</strong> characters</div>
+                            </div>
+                            <div class="req" id="r-upper">
+                                <div class="dot">✗</div>
+                                <div>Contains uppercase A–Z</div>
+                            </div>
+                            <div class="req" id="r-lower">
+                                <div class="dot">✗</div>
+                                <div>Contains lowercase a–z</div>
+                            </div>
+                            <div class="req" id="r-number">
+                                <div class="dot">✗</div>
+                                <div>Contains digits 0–9</div>
+                            </div>
+                            <div class="req" id="r-symbol">
+                                <div class="dot">✗</div>
+                                <div>Contains special characters</div>
+                            </div>
+                            <div class="req" id="r-seq">
+                                <div class="dot">✗</div>
+                                <div>No common sequences (123, abc)</div>
+                            </div>
+                            <div class="req" id="r-common">
+                                <div class="dot">✗</div>
+                                <div>Not a common password or leaked phrase</div>
+                            </div>
+                        </div>
+
+                        <div class="suggestions" id="suggestionsBox">
+                            <h4 style="margin:0 0 6px 0">Suggestions</h4>
+                            <ul id="suggestionsList">
+                                <li>Use a longer phrase — length multiplies entropy.</li>
+                                <li>Mix character types and avoid repeated patterns.</li>
+                                <li>Prefer random words (passphrases) or a password manager for storage.</li>
+                            </ul>
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <aside
+                    style="padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02);background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);">
+                    <div style="margin-bottom:12px">
+                        <h3 style="margin:0">Time-to-crack estimates</h3>
+                        <div class="muted">Range shown for different attacker capabilities</div>
+                    </div>
+
+                    <div style="display:grid;gap:10px">
+                        <div class="timeBox">
+                            <div style="font-size:0.85rem;color:var(--muted)">Online (100 guesses/s)</div>
+                            <div id="onlineTime" class="timeRange">—</div>
+                        </div>
+
+                        <div class="timeBox">
+                            <div style="font-size:0.85rem;color:var(--muted)">Offline GPU (10 billion guesses/s)</div>
+                            <div id="gpuTime" class="timeRange">—</div>
+                        </div>
+
+                        <div class="timeBox">
+                            <div style="font-size:0.85rem;color:var(--muted)">Nation-state (1e14 guesses/s)</div>
+                            <div id="nationTime" class="timeRange">—</div>
+                        </div>
+
+                        <div style="margin-top:10px;color:var(--muted);font-size:0.9rem">Note: these are rough estimates
+                            based on entropy. Real-world exposure depends on leaks, reuse, and attacker resources.</div>
+                    </div>
+                </aside>
+
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // Utilities
+        const $ = (s) => document.querySelector(s);
+        const el = (id) => document.getElementById(id);
+
+        const password = el('password');
+        const toggleEye = el('toggleEye');
+        const progressRing = el('progressRing');
+        const scorePercent = el('scorePercent');
+        const scoreLabel = el('scoreLabel');
+        const entropyLabel = el('entropyLabel');
+        const b1 = el('b1'), b2 = el('b2'), b3 = el('b3'), b4 = el('b4'), b5 = el('b5');
+        const quickScore = el('quickScore'), quickTime = el('quickTime');
+
+        const reqs = {
+            length: el('r-length'),
+            upper: el('r-upper'),
+            lower: el('r-lower'),
+            number: el('r-number'),
+            symbol: el('r-symbol'),
+            seq: el('r-seq'),
+            common: el('r-common')
+        };
+
+        const onlineTime = el('onlineTime'), gpuTime = el('gpuTime'), nationTime = el('nationTime');
+
+        const showEntropy = el('showEntropy');
+        const includeSymbols = el('includeSymbols');
+        const usePassphrase = el('usePassphrase');
+        const genLength = el('genLength');
+        const lenLabel = el('lenLabel');
+        const generateBtn = el('generateBtn');
+        const copyBtn = el('copyBtn');
+
+        // Pre-seeded small common list (expand as needed)
+        const commonPasswords = new Set(['password', '123456', '123456789', 'qwerty', 'abc123', '111111', 'iloveyou', 'admin', 'letmein', 'welcome', 'monkey', 'login', 'passw0rd']);
+
+        // ring properties
+        const R = 80; // radius
+        const CIRC = 2 * Math.PI * R;
+        progressRing.style.strokeDasharray = CIRC;
+
+        // debounce input to avoid heavy calculations on fast typing
+        function debounce(fn, ms = 150) {
+            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms) }
+        }
+
+        // toggle visibility
+        toggleEye.addEventListener('click', () => {
+            const isPwd = password.type === 'password';
+            password.type = isPwd ? 'text' : 'password';
+            toggleEye.textContent = isPwd ? '🔒' : '👁️';
+            toggleEye.setAttribute('aria-pressed', String(isPwd));
+        });
+
+        // length slider label
+        genLength.addEventListener('input', () => { lenLabel.textContent = genLength.value });
+
+        // main analyzer on input
+        password.addEventListener('input', debounce(() => analyze(password.value)));
+
+        // generate / copy
+        generateBtn.addEventListener('click', () => {
+            const len = Number(genLength.value);
+            const pass = usePassphrase.checked ? generatePassphrase(len) : generatePassword(len, includeSymbols.checked);
+            password.value = pass; password.type = 'text'; toggleEye.textContent = '🔒'; analyze(pass);
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!password.value) return;
+            navigator.clipboard.writeText(password.value).then(() => {
+                copyBtn.textContent = 'Copied ✓'; setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+            }).catch(() => { copyBtn.textContent = 'Copy failed'; setTimeout(() => copyBtn.textContent = 'Copy', 1500) })
+        });
+
+        // analyze function
+        function analyze(pw) {
+            if (!pw) { reset(); return }
+
+            // entropy calculation: estimate charset size + pattern detection
+            const charset = estimateCharset(pw);
+            const entropy = calculateEntropy(pw, charset);
+            const score = mapEntropyToScore(entropy, pw);
+
+            // UI updates
+            setRing(score);
+            setBars(score);
+            setLabels(score, entropy);
+            setQuickPanels(score, entropy);
+            updateRequirements(pw);
+            updateTimeEstimates(entropy);
+            updateSuggestions(pw, entropy);
+        }
+
+        function reset() {
+            setRing(0); setBars(0); setLabels(0, 0);
+            quickScore.textContent = '0%'; quickTime.textContent = 'Instant';
+            onlineTime.textContent = '—'; gpuTime.textContent = '—'; nationTime.textContent = '—';
+            Object.values(reqs).forEach(r => { r.classList.remove('ok'); r.classList.add('fail'); r.querySelector('.dot').textContent = '✗' });
+        }
+
+        // estimate charset from presence of classes
+        function estimateCharset(pw) {
+            let size = 0;
+            if (/[a-z]/.test(pw)) size += 26;
+            if (/[A-Z]/.test(pw)) size += 26;
+            if (/[0-9]/.test(pw)) size += 10;
+            if (/[^a-zA-Z0-9]/.test(pw)) size += 32; // approximate symbol set
+            // if passphrase (spaces) include word entropy handling later
+            return Math.max(size, pw.includes(' ') ? 27 : 1);
+        }
+
+        // calculate entropy bits: treat passphrases differently if spaces present
+        function calculateEntropy(pw, charsetSize) {
+            if (pw.includes(' ')) {
+                // crude passphrase estimate: count words and estimate bits/word (wordlist size ~ 2048 => 11 bits)
+                const words = pw.trim().split(/\s+/).filter(Boolean);
+                const bitsPerWord = 11; // conservative default for small wordlists
+                return words.length * bitsPerWord;
+            }
+            // normal entropy = length * log2(charsetSize) minus pattern penalties
+            const len = pw.length;
+            const raw = len * (Math.log2(charsetSize) || 1);
+            // detect repeats / sequences and reduce
+            let penalty = 0;
+            if (/(.)\1{2,}/.test(pw)) penalty += 6; // repeated characters
+            if (/(123|234|345|456|789|012|abc|bcd|cde|qwe)/i.test(pw)) penalty += 8;
+            if (commonPasswords.has(pw.toLowerCase())) penalty += 40;
+            return Math.max(0, raw - penalty);
+        }
+
+        // map entropy to a 0-100 score with caps for length & char types
+        function mapEntropyToScore(entropy, pw) {
+            // target: 0 -> 0, 40 bits -> 40, 80 bits -> 85, 128 bits -> 100
+            let score = Math.min(100, Math.round((entropy / 128) * 100 * 1.05));
+            // small adjustments for length and variety
+            if (pw.length >= 20) score = Math.max(score, 70);
+            return Math.max(0, Math.min(100, score));
+        }
+
+        // set SVG ring
+        function setRing(score) {
+            const pct = score / 100;
+            const offset = CIRC * (1 - pct);
+            progressRing.style.strokeDashoffset = offset;
+            // color interpolation
+            if (score < 30) progressRing.style.stroke = '#ff6b6b';
+            else if (score < 55) progressRing.style.stroke = '#ffb86b';
+            else if (score < 80) progressRing.style.stroke = '#ffd166';
+            else progressRing.style.stroke = '#48e5a1';
+        }
+
+        function setBars(score) {
+            const per = score;
+            // divide into 5 bars: each bar shows up to 20% (animated width)
+            const widths = [Math.min(100, (per / 20) * 100), Math.min(100, ((per - 20) / 20) * 100), Math.min(100, ((per - 40) / 20) * 100), Math.min(100, ((per - 60) / 20) * 100), Math.min(100, ((per - 80) / 20) * 100)];
+            [b1, b2, b3, b4, b5].forEach((b, i) => { b.style.width = (widths[i] > 0 ? widths[i] + '%' : '0%') });
+        }
+
+        function setLabels(score, entropy) {
+            scorePercent.textContent = Math.round(score) + '%';
+            let label = 'Very Weak';
+            if (score < 20) label = 'Very Weak';
+            else if (score < 40) label = 'Weak';
+            else if (score < 60) label = 'Fair';
+            else if (score < 80) label = 'Good';
+            else if (score < 95) label = 'Strong';
+            else label = 'Very Strong';
+            scoreLabel.textContent = label;
+            entropyLabel.textContent = showEntropy.checked ? `Entropy: ${Math.round(entropy)} bits` : '';
+        }
+
+        function setQuickPanels(score, entropy) {
+            quickScore.textContent = Math.round(score) + '%';
+            // simplified quick time
+            quickTime.textContent = entropy < 20 ? 'Instant' : entropy < 40 ? 'Seconds' : entropy < 60 ? 'Hours' : entropy < 80 ? 'Days' : entropy < 100 ? 'Years' : 'Centuries';
+        }
+
+        function updateRequirements(pw) {
+            const tests = {
+                length: pw.length >= 12,
+                upper: /[A-Z]/.test(pw),
+                lower: /[a-z]/.test(pw),
+                number: /[0-9]/.test(pw),
+                symbol: /[^a-zA-Z0-9\s]/.test(pw),
+                seq: !/(123|234|345|456|789|012|abc|bcd|cde|qwe|asd|zxc)/i.test(pw),
+                common: !commonPasswords.has(pw.toLowerCase())
+            };
+            Object.keys(tests).forEach(k => {
+                const elReq = reqs[k];
+                if (tests[k]) { elReq.classList.remove('fail'); elReq.classList.add('ok'); elReq.querySelector('.dot').textContent = '✓' }
+                else { elReq.classList.remove('ok'); elReq.classList.add('fail'); elReq.querySelector('.dot').textContent = '✗' }
+            });
+        }
+
+        // time estimates: compute time = 2^entropy / guessesPerSecond
+        function humanizeSeconds(s) {
+            if (!isFinite(s) || s > 1e20) return 'Centuries+';
+            if (s < 1) return 'less than 1s';
+            const units = [['y', 31536000], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]];
+            for (const [u, secs] of units) {
+                if (s >= secs) return Math.floor(s / secs) + u;
+            }
+            return s.toFixed(1) + 's';
+        }
+
+        function updateTimeEstimates(entropy) {
+            const guesses = Math.pow(2, entropy || 0);
+            const online = humanizeSeconds(guesses / 1e2); // 100/s
+            const gpu = humanizeSeconds(guesses / 1e10); // 10B/s
+            const nation = humanizeSeconds(guesses / 1e14);
+            onlineTime.textContent = online; gpuTime.textContent = gpu; nationTime.textContent = nation;
+        }
+
+        function updateSuggestions(pw, entropy) {
+            const suggestions = [];
+            if (pw.length < 12) suggestions.push('Make it longer — every extra character adds entropy.');
+            if (!/[0-9]/.test(pw)) suggestions.push('Add numbers to increase entropy.');
+            if (!/[^a-zA-Z0-9\s]/.test(pw)) suggestions.push('Add symbols (e.g. !@#) or use a passphrase to raise entropy.');
+            if (/(.)\1{2,}/.test(pw)) suggestions.push('Avoid long repeated characters (aaaa).');
+            if (commonPasswords.has(pw.toLowerCase())) suggestions.push('This password is common — do not use it.');
+            const list = document.getElementById('suggestionsList');
+            list.innerHTML = suggestions.length ? suggestions.map(s => `<li>${s}</li>`).join('') : '<li>No immediate suggestions — looks good. Consider using a password manager.</li>';
+        }
+
+        // Generators
+        function generatePassword(len = 16, symbols = true) {
+            const lowers = 'abcdefghijklmnopqrstuvwxyz';
+            const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const nums = '0123456789';
+            const syms = '!@#$%^&*()-_=+[]{};:,.<>?'
+            let pool = lowers + uppers + nums + (symbols ? syms : '');
+            let out = '';
+            // enforce at least one of each class for better UX
+            out += randomChar(lowers); out += randomChar(uppers); out += randomChar(nums);
+            if (symbols) out += randomChar(syms);
+            for (let i = out.length; i < len; i++) { out += randomChar(pool); }
+            return shuffle(out);
+        }
+
+        function generatePassphrase(wordCount = 4) {
+            // small builtin wordlist for offline generation; in production use a large wordlist
+            const words = ['apple', 'river', 'sunset', 'orchid', 'battery', 'tango', 'quantum', 'lunar', 'maple', 'forest', 'cinder', 'pillow', 'rocket', 'paper', 'ember', 'stone', 'mirror', 'cobalt', 'harbor', 'gentle'];
+            const chosen = [];
+            const count = Math.max(3, Math.min(8, Math.round(wordCount / 4))); // map slider length to ~words
+            for (let i = 0; i < count; i++) chosen.push(words[Math.floor(Math.random() * words.length)]);
+            // add a digit or symbol occasionally
+            const glue = Math.random() > 0.5 ? '-' : ' ';
+            return chosen.join(glue) + (Math.random() > 0.6 ? ('' + Math.floor(Math.random() * 90 + 10)) : '');
+        }
+
+        function randomChar(s) { return s.charAt(Math.floor(Math.random() * s.length)) }
+        function shuffle(s) { return s.split('').sort(() => Math.random() - 0.5).join('') }
+
+        // helper: detect charset for entropy function
+        function calcEntropyFromPw(pw) {
+            const charset = estimateCharset(pw);
+            return calculateEntropy(pw, charset);
+        }
+
+        // initial
+        analyze('');
+
+        // small helpers to avoid excessive drift and update when toggles change
+        [showEntropy, includeSymbols, usePassphrase, genLength].forEach(i => i.addEventListener('change', () => analyze(password.value)));
+
+    </script>
+</body>
+
+</html>
